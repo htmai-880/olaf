@@ -201,9 +201,10 @@ class LLMBasedRelationExtraction(PipelineComponent):
         """
         relation_candidates = []
         try:
+            # Expected: list of list of strings
             rc_labels = parse_json_output(llm_output)
             if isinstance(rc_labels, dict):
-                rc_labels = rc_labels.get("result", [])
+                rc_labels = rc_labels["result"]
             if not isinstance(rc_labels, list):
                 raise ValueError("LLM output could not be parsed as a list.")
             for rc_group in rc_labels:

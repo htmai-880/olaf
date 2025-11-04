@@ -108,9 +108,10 @@ class LLMTermExtraction(TermExtractionPipelineComponent):
         doc_prompt = self.prompt_template(doc.text)
         llm_output = self.llm_generator.generate_text(doc_prompt)
         try:
+            # Expected: list of strings
             ct_labels = parse_json_output(llm_output)
             if isinstance(ct_labels, dict):
-                ct_labels = ct_labels.get("result", [])
+                ct_labels = ct_labels["result"]
             if isinstance(ct_labels, list):
                 ct_labels = set(ct_labels)
             else:

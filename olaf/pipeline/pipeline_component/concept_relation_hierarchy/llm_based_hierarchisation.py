@@ -181,11 +181,12 @@ class LLMBasedHierarchisation(PipelineComponent):
         """
         metarelations = set()
         try:
+            # Expected: list of list of strings
             list_metarelations = parse_json_output(llm_output)
             if isinstance(list_metarelations, dict):
-                list_metarelations = list_metarelations.get("result", [])
+                list_metarelations = list_metarelations["result"]
             if not (isinstance(list_metarelations, List)):
-                raise ValueError("Invalid LLM output format.")
+                raise ValueError(f"Invalid LLM output format:\n{llm_output}")
             for meta_tuple in list_metarelations:
                 if not (isinstance(meta_tuple, List) and len(meta_tuple) == 3):
                     continue

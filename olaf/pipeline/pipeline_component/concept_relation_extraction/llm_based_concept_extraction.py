@@ -150,9 +150,11 @@ class LLMBasedConceptExtraction(PipelineComponent):
         """
         concept_candidates = []
         try:
+            # Expected: list of list of strings
             cc_labels = parse_json_output(llm_output)
             if isinstance(cc_labels, dict):
-                cc_labels = cc_labels.get("result", [])
+                cc_labels = cc_labels["result"]
+            assert isinstance(cc_labels, list), "LLM output is not a list."
             for cc_group in cc_labels:
                 cc_set = {
                     cterm_index[cc_label]
