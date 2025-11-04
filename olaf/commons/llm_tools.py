@@ -18,8 +18,9 @@ from ..commons.logging_config import logger
 class LLMGenerator(ABC):
     """Text generator based on LLM."""
 
-    def __init__(self) -> None:
+    def __init__(self, model_name: str = "gpt-3.5-turbo") -> None:
         """Initialise LLM generator."""
+        self.model_name = model_name
 
     @abstractmethod
     def check_resources(self) -> None:
@@ -34,9 +35,14 @@ class HuggingFaceGenerator(LLMGenerator):
     """Text generator base on Hugging Face inference API."""
 
     def __init__(
-            self, 
-            api_url: Optional[str] = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
-        ) -> None:
+        self,
+        model_name: str = "HuggingFaceH4/zephyr-7b-beta",
+        api_url: Optional[
+            str
+        ] = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta",
+    ) -> None:
+        """Initialise Hugging Face generator."""
+        super().__init__(model_name=model_name)
         self.api_url = api_url
 
     def check_resources(self) -> None:
@@ -92,14 +98,17 @@ class OpenAIGenerator(LLMGenerator):
         )
         def openai_call():
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model_name,
                 temperature=0,
                 messages=prompt,
             )
             return response
 
         llm_output = ""
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        client = openai.OpenAI(
+            base_url=os.getenv("OPENAI_API_BASE_URL") or None,
+            api_key=os.getenv("OPENAI_API_KEY"),
+        )
         try:
             response = openai_call()
             llm_output = response.choices[0].message.content
@@ -114,11 +123,77 @@ class OpenAIGenerator(LLMGenerator):
         return llm_output
 
 
+class AzureOpenAIGenerator(LLMGenerator):
+    """Text generator based that uses Azure OpenAI gpt-3.5-turbo model."""
+
+    def __init__(self, model_name: str = "gpt-3.5-turbo") -> None:
+        super().__init__()
+        self.model_name = model_name
+
+    def check_resources(self) -> None:
+        """Check that the resources needed to use the OpenAI Generator are available."""
+        if "AZURE_OPENAI_API_KEY" not in os.environ:
+            raise MissingEnvironmentVariable(
+                self.__class__, "AZURE_OPENAI_API_KEY"
+            )
+        if "AZURE_OPENAI_API_VERSION" not in os.environ:
+            raise MissingEnvironmentVariable(
+                self.__class__, "AZURE_OPENAI_API_VERSION"
+            )
+        if "AZURE_OPENAI_ENDPOINT" not in os.environ:
+            raise MissingEnvironmentVariable(
+                self.__class__, "AZURE_OPENAI_ENDPOINT"
+            )
+
+    def generate_text(self, prompt: List[Dict[str, str]]) -> str:
+        """Generate text based on a chat completion prompt for the OpenAI gtp-3.5-turbo model."""
+
+        @retry(
+            stop=stop_after_delay(15) | stop_after_attempt(3),
+            retry=(
+                retry_if_exception_type(
+                    openai.APIConnectionError
+                    | openai.APITimeoutError
+                    | openai.RateLimitError
+                    | openai.InternalServerError
+                )
+            ),
+            reraise=True,
+        )
+        def openai_call():
+            response = client.chat.completions.create(
+                model=self.model_name,
+                temperature=0,
+                messages=prompt,
+            )
+            return response
+
+        llm_output = ""
+        client = openai.AzureOpenAI(
+            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+        )
+        try:
+            response = openai_call()
+            llm_output = response.choices[0].message.content
+        except Exception as e:
+            logger.error(
+                """Exception %s still occurred after retries on Azure OpenAI API.
+                         Skipping document %s...""",
+                e,
+                prompt[-1]["content"][5:100],
+            )
+
+        return llm_output
+
+
 class MistralAIGenerator(LLMGenerator):
     """Text generator based on MiastralAI models."""
 
     def __init__(self, model_name: Optional[str] = "mistral-tiny") -> None:
-        self.model_name = model_name 
+        """Initialise MistralAI generator."""
+        super().__init__(model_name=model_name)
         self.api_url = "https://api.mistral.ai/v1/chat/completions"
 
     def check_resources(self) -> None:
