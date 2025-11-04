@@ -480,7 +480,7 @@ def parse_json_output(output: str) -> dict:
         if start != -1:
             start_idx = start + len("```json")
             end = output.index("```", start_idx)
-            json_str = output[start:end].strip()
+            json_str = output[start_idx:end].strip()
             return json.loads(json_str)
         # Otherwise, try to get the json raw
         # Get the first { and the last }
