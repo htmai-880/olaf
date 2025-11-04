@@ -1,4 +1,38 @@
-from typing import Dict, List
+from typing import Dict, List, Union
+import json
+import rdflib
+
+FORMAT_INSTRUCTION_LIST = """Return nothing but a json object containing the list of results, enclosed in triple backtick delimiters, as follows:
+```json
+{
+    "result": [
+        "list",
+        "of",
+        "results"
+    ]
+}
+```
+"""
+
+FORMAT_INSTRUCTION_LIST_LIST = """Return nothing but a json object containing the list of list of results, enclosed in triple backtick delimiters, as follows:
+```json
+{
+    "result": [
+        ["list", "of", "results"],
+        ["another", "result", "list"]
+    ]
+}
+```
+"""
+
+
+def make_example_dict(dictionary: dict):
+    dict_str = json.dumps(dictionary)
+    return "```json\n" + dict_str + "\n```"
+
+
+def make_example_list(list_items: List[Union[str, List[str]]]):
+    return "```json\n" + json.dumps({"results": list_items}, indent=4) + "\n```"
 
 
 def openai_prompt_concept_term_extraction(context: str) -> List[Dict[str, str]]:
@@ -21,11 +55,15 @@ def openai_prompt_concept_term_extraction(context: str) -> List[Dict[str, str]]:
         },
         {
             "role": "user",
-            "content": "Extract the most meaningful keywords of the following text. Keep only keywords that could be concepts and not relations. Write them as a python list of string with double quotes.",
+            "content": "Extract the most meaningful keywords of the following text. Keep only keywords that could be concepts and not relations. "
+            + FORMAT_INSTRUCTION_LIST,
         },
         {
             "role": "user",
-            "content": 'Here is an example. Text: This python package is about ontology learning. I do not know a lot about this field.\n["python package", "ontology learning", "field"]',
+            "content": "Here is an example. Text: This python package is about ontology learning. I do not know a lot about this field.\n"
+            + make_example_list(
+                ["python package", "ontology learning", "field"]
+            ),
         },
         {"role": "user", "content": f"Text: {context}"},
     ]
@@ -53,7 +91,9 @@ def hf_prompt_concept_term_extraction(context: str) -> str:
     return prompt_template
 
 
-def openai_prompt_relation_term_extraction(context: str) -> List[Dict[str, str]]:
+def openai_prompt_relation_term_extraction(
+    context: str,
+) -> List[Dict[str, str]]:
     """Prompt template for relation term extraction with ChatCompletion OpenAI model.
 
     Parameters
@@ -73,11 +113,13 @@ def openai_prompt_relation_term_extraction(context: str) -> List[Dict[str, str]]
         },
         {
             "role": "user",
-            "content": "Extract the most meaningful words describing actions or states in the following text. Keep only words that could be relations and not concepts. Write them as a python list of string with double quotes.",
+            "content": "Extract the most meaningful words describing actions or states in the following text. Keep only words that could be relations and not concepts. "
+            + FORMAT_INSTRUCTION_LIST,
         },
         {
             "role": "user",
-            "content": 'Here is an example. Text: I plan to eat pizza tonight. I am looking for advice.\n["plan", "eat", "looking for"]',
+            "content": "Here is an example. Text: I plan to eat pizza tonight. I am looking for advice.\n"
+            + make_example_list(["plan", "eat", "looking for"]),
         },
         {"role": "user", "content": f"Text: {context}"},
     ]
@@ -125,12 +167,20 @@ def openai_prompt_term_enrichment(context: str) -> List[Dict[str, str]]:
         },
         {
             "role": "user",
-            "content": 'Give synonyms, hypernyms, hyponyms and antonyms of the following term. The output should be in json format with "synonyms", "hypernyms", "hyponyms" and "antonyms" as keys and a list a string as values. ',
+            "content": 'Give synonyms, hypernyms, hyponyms and antonyms of the following term. The output should be in json format with "synonyms", "hypernyms", "hyponyms" and "antonyms" as keys and a list a string as values. '
+            'Return the json object enclosed in triple backtick delimiters, as follows:\n```json\n{\n    "synonyms": [\n        "list",\n        "of",\n        "synonyms"\n    ],\n    "hypernyms": [\n        "list",\n        "of",\n        "hypernyms"\n    ],\n    "hyponyms": [\n        "list",\n        "of",\n        "hyponyms"\n    ],\n    "antonyms": [\n        "list",\n        "of",\n        "antonyms"\n    ]\n}\n```',
         },
         {
             "role": "user",
-            "content": """Here is an example. Term : dog
-            {"synonyms": ["hound", "mutt"], "hypernyms":["animal", "mammal", "canine"], "hyponyms": ["labrador", "dalmatian"],"antonyms": []}""",
+            "content": """Here is an example. Term : dog\n"""
+            + make_example_dict(
+                {
+                    "synonyms": ["hound", "mutt"],
+                    "hypernyms": ["animal", "mammal", "canine"],
+                    "hyponyms": ["labrador", "dalmatian"],
+                    "antonyms": [],
+                }
+            ),
         },
         {"role": "user", "content": f"Term: {context}"},
     ]
@@ -183,9 +233,13 @@ def openai_prompt_concept_extraction(
         },
         {
             "role": "user",
-            "content": "Based on the context given, group together the words listed below where each group should correspond to one concept. The result should be given as a python list of list of string with double quotes.",
+            "content": "Based on the context given, group together the words listed below where each group should correspond to one concept. "
+            + FORMAT_INSTRUCTION_LIST_LIST,
         },
-        {"role": "user", "content": f"Context: {doc_context} \nWords : {ct_labels}"},
+        {
+            "role": "user",
+            "content": f"Context: {doc_context} \nWords : {ct_labels}",
+        },
     ]
     return prompt_template
 
@@ -237,9 +291,13 @@ def openai_prompt_relation_extraction(
         },
         {
             "role": "user",
-            "content": "Based on the context given, group together the words listed below where each group should express the same relation. The result should be given as a python list of list of string with double quotes.",
+            "content": "Based on the context given, group together the words listed below where each group should express the same relation. "
+            + FORMAT_INSTRUCTION_LIST_LIST,
         },
-        {"role": "user", "content": f"Context: {doc_context} \nWords : {ct_labels}"},
+        {
+            "role": "user",
+            "content": f"Context: {doc_context} \nWords : {ct_labels}",
+        },
     ]
     return prompt_template
 
@@ -296,8 +354,14 @@ def openai_prompt_hierarchisation(
         },
         {
             "role": "user",
-            "content": """Here is an example. Concepts: animal, mammal, dog(canine), flower
-            [["mammal","is_generalised_by","animal"], ["dog","is_generalised_by","mammal"], ["dog","is_generalised_by","animal"]]""",
+            "content": """Here is an example. Concepts: animal, mammal, dog(canine), flower\n"""
+            + make_example_list(
+                [
+                    ["mammal", "is_generalised_by", "animal"],
+                    ["dog", "is_generalised_by", "mammal"],
+                    ["dog", "is_generalised_by", "animal"],
+                ]
+            ),
         },
         {"role": "user", "content": f"Context: {doc_context}"},
         {"role": "user", "content": concepts_description},
@@ -305,7 +369,9 @@ def openai_prompt_hierarchisation(
     return prompt_template
 
 
-def hf_prompt_hierarchisation(doc_context: str, concepts_description: str) -> str:
+def hf_prompt_hierarchisation(
+    doc_context: str, concepts_description: str
+) -> str:
     """Prompt template for hierarchisation with Hugging Face inference API.
 
     Parameters
@@ -386,8 +452,71 @@ def openai_prompt_owl_axiom_extraction(
             "content": f"""Use the following classes, individuals and relations to construct an OWL ontology in the Turtle format.
             Use the following namespace: {namespace}.
             Include the RDF, RDFS, and OWL prefixes.
-            Return only the turtle file.""",
+            Return only the turtle file, enclosed in triple backtick delimiters. The first line should start with '```turtle', and the last line with '```'.""",
         },
         {"role": "user", "content": kr_description},
     ]
     return prompt_template
+
+
+##### CREATE OUTPUT PARSERS #####
+
+
+def parse_json_output(output: str) -> dict:
+    """Parse JSON output enclosed in triple backticks.
+
+    Parameters
+    ----------
+    output: str
+        The output string containing JSON data.
+
+    Returns
+    -------
+    dict
+        Parsed JSON data.
+    """
+    try:
+        start = output.index("```json")
+        if start != -1:
+            start_idx = start + len("```json")
+            end = output.index("```", start_idx)
+            json_str = output[start:end].strip()
+            return json.loads(json_str)
+        # Otherwise, try to get the json raw
+        # Get the first { and the last }
+        start = output.index("{")
+        end = output.rindex("}") + 1
+        return json.loads(output[start:end])
+    except (ValueError, json.JSONDecodeError) as e:
+        raise ValueError("Failed to parse JSON output.") from e
+
+
+def parse_turtle_output(output: str) -> str:
+    """Parse Turtle output enclosed in triple backticks.
+
+    Parameters
+    ----------
+    output: str
+        The output string containing Turtle data.
+
+    Returns
+    -------
+    str
+        Parsed Turtle data as a string.
+    """
+    try:
+        start = output.index("```turtle")
+        if start != -1:
+            start_idx = start + len("```turtle")
+            end = output.index("```", start_idx)
+            turtle_str = output[start_idx:end].strip()
+            # Validate the turtle syntax by parsing it with rdflib
+            g = rdflib.Graph()
+            g.parse(data=turtle_str, format="turtle")
+            return turtle_str
+        # Otherwise, try to get the turtle raw
+        g = rdflib.Graph()
+        g.parse(data=output, format="turtle")
+        return output
+    except (ValueError, rdflib.exceptions.ParserError) as e:
+        raise ValueError("Failed to parse Turtle output.") from e

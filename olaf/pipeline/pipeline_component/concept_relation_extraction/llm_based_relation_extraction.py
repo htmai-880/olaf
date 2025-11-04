@@ -6,8 +6,12 @@ from spacy.tokens import Doc
 from ...pipeline_schema import Pipeline
 from ....commons.llm_tools import HuggingFaceGenerator, LLMGenerator
 from ....commons.logging_config import logger
-from ....commons.prompts import hf_prompt_relation_extraction
-from ....commons.relation_tools import crs_to_relation, cts_to_crs, group_cr_by_concepts
+from ....commons.prompts import hf_prompt_relation_extraction, parse_json_output
+from ....commons.relation_tools import (
+    crs_to_relation,
+    cts_to_crs,
+    group_cr_by_concepts,
+)
 from ....data_container.candidate_term_schema import CandidateTerm
 from ..pipeline_component_schema import PipelineComponent
 
@@ -65,7 +69,9 @@ class LLMBasedRelationExtraction(PipelineComponent):
             else hf_prompt_relation_extraction
         )
         self.llm_generator = (
-            llm_generator if llm_generator is not None else HuggingFaceGenerator()
+            llm_generator
+            if llm_generator is not None
+            else HuggingFaceGenerator()
         )
         self.doc_context_max_len = doc_context_max_len
         self.concept_max_distance = concept_max_distance
@@ -195,7 +201,11 @@ class LLMBasedRelationExtraction(PipelineComponent):
         """
         relation_candidates = []
         try:
-            rc_labels = ast.literal_eval(llm_output)
+            rc_labels = parse_json_output(llm_output)
+            if isinstance(rc_labels, dict):
+                rc_labels = rc_labels.get("result", [])
+            if not isinstance(rc_labels, list):
+                raise ValueError("LLM output could not be parsed as a list.")
             for rc_group in rc_labels:
                 rc_set = set()
                 for rc_label in rc_group:
@@ -223,8 +233,12 @@ class LLMBasedRelationExtraction(PipelineComponent):
         ct_str_list = "\n".join(cterm_index.keys())
         prompt = self.prompt_template(doc_context, ct_str_list)
         llm_output = self.llm_generator.generate_text(prompt)
-        relation_candidates = self._convert_llm_output_to_rc(llm_output, cterm_index)
-        concept_map = {concept.label: concept for concept in pipeline.kr.concepts}
+        relation_candidates = self._convert_llm_output_to_rc(
+            llm_output, cterm_index
+        )
+        concept_map = {
+            concept.label: concept for concept in pipeline.kr.concepts
+        }
         for rc_group in relation_candidates:
             crs = cts_to_crs(
                 rc_group,
@@ -235,6 +249,8 @@ class LLMBasedRelationExtraction(PipelineComponent):
             )
             new_relations = group_cr_by_concepts(crs)
             for new_relation in new_relations:
+                if len(new_relation) == 0:
+                    continue
                 new_relation = crs_to_relation(new_relation)
                 pipeline.kr.relations.add(new_relation)
 

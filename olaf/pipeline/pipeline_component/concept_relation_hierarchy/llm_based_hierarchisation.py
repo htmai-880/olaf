@@ -6,7 +6,7 @@ from spacy.tokens import Doc
 from ...pipeline_schema import Pipeline
 from ....commons.llm_tools import HuggingFaceGenerator, LLMGenerator
 from ....commons.logging_config import logger
-from ....commons.prompts import hf_prompt_hierarchisation
+from ....commons.prompts import hf_prompt_hierarchisation, parse_json_output
 from ....data_container.concept_schema import Concept
 from ....data_container.metarelation_schema import Metarelation
 from ..pipeline_component_schema import PipelineComponent
@@ -50,7 +50,9 @@ class LLMBasedHierarchisation(PipelineComponent):
             else hf_prompt_hierarchisation
         )
         self.llm_generator = (
-            llm_generator if llm_generator is not None else HuggingFaceGenerator()
+            llm_generator
+            if llm_generator is not None
+            else HuggingFaceGenerator()
         )
         self.doc_context_max_len = doc_context_max_len
         self.check_resources()
@@ -136,7 +138,9 @@ class LLMBasedHierarchisation(PipelineComponent):
                 concepts_description += f"{concept.label}\n"
         return concepts_description
 
-    def _find_concept_by_label(self, label: str, concepts: Set[Concept]) -> Concept:
+    def _find_concept_by_label(
+        self, label: str, concepts: Set[Concept]
+    ) -> Concept:
         """Find a concept based on its label.
 
         Parameters
@@ -177,13 +181,24 @@ class LLMBasedHierarchisation(PipelineComponent):
         """
         metarelations = set()
         try:
-            list_metarelations = ast.literal_eval(llm_output)
+            list_metarelations = parse_json_output(llm_output)
+            if isinstance(list_metarelations, dict):
+                list_metarelations = list_metarelations.get("result", [])
+            if not (isinstance(list_metarelations, List)):
+                raise ValueError("Invalid LLM output format.")
             for meta_tuple in list_metarelations:
-                source_concept = self._find_concept_by_label(meta_tuple[0], concepts)
+                if not (isinstance(meta_tuple, List) and len(meta_tuple) == 3):
+                    continue
+                source_concept = self._find_concept_by_label(
+                    meta_tuple[0], concepts
+                )
                 destination_concept = self._find_concept_by_label(
                     meta_tuple[2], concepts
                 )
-                if source_concept is not None and destination_concept is not None:
+                if (
+                    source_concept is not None
+                    and destination_concept is not None
+                ):
                     new_metarelation = Metarelation(
                         source_concept, destination_concept, "is_generalised_by"
                     )
@@ -206,9 +221,13 @@ class LLMBasedHierarchisation(PipelineComponent):
 
         popular_docs = self._extract_popular_docs(pipeline.corpus)
         context = self._generate_doc_context(popular_docs)
-        concepts_description = self._create_concepts_description(pipeline.kr.concepts)
+        concepts_description = self._create_concepts_description(
+            pipeline.kr.concepts
+        )
         prompt = self.prompt_template(context, concepts_description)
         llm_output = self.llm_generator.generate_text(prompt)
-        metarelations = self._create_metarelations(llm_output, pipeline.kr.concepts)
+        metarelations = self._create_metarelations(
+            llm_output, pipeline.kr.concepts
+        )
 
         pipeline.kr.metarelations.update(metarelations)

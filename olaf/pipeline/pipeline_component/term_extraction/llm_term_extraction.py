@@ -7,7 +7,10 @@ from spacy.tokens import Doc
 from ...pipeline_schema import Pipeline
 from ....commons.llm_tools import HuggingFaceGenerator, LLMGenerator
 from ....commons.logging_config import logger
-from ....commons.prompts import hf_prompt_concept_term_extraction
+from ....commons.prompts import (
+    hf_prompt_concept_term_extraction,
+    parse_json_output,
+)
 from ....data_container.candidate_term_schema import CandidateTerm
 from .term_extraction_schema import TermExtractionPipelineComponent
 
@@ -55,7 +58,9 @@ class LLMTermExtraction(TermExtractionPipelineComponent):
             else hf_prompt_concept_term_extraction
         )
         self.llm_generator = (
-            llm_generator if llm_generator is not None else HuggingFaceGenerator()
+            llm_generator
+            if llm_generator is not None
+            else HuggingFaceGenerator()
         )
         self.check_resources()
 
@@ -103,8 +108,10 @@ class LLMTermExtraction(TermExtractionPipelineComponent):
         doc_prompt = self.prompt_template(doc.text)
         llm_output = self.llm_generator.generate_text(doc_prompt)
         try:
-            ct_labels = ast.literal_eval(llm_output)
-            if isinstance(ct_labels, List):
+            ct_labels = parse_json_output(llm_output)
+            if isinstance(ct_labels, dict):
+                ct_labels = ct_labels.get("result", [])
+            if isinstance(ct_labels, list):
                 ct_labels = set(ct_labels)
             else:
                 logger.error(
@@ -141,7 +148,9 @@ class LLMTermExtraction(TermExtractionPipelineComponent):
             if label in doc.text:
                 occurrences = set()
                 for string_match in re.finditer(label, doc.text):
-                    span = doc.char_span(string_match.start(), string_match.end())
+                    span = doc.char_span(
+                        string_match.start(), string_match.end()
+                    )
                     if span is not None:
                         occurrences.add(span)
                 if label in ct_index.keys():

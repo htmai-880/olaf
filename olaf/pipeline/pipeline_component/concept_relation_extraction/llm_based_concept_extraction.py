@@ -7,7 +7,7 @@ from ...pipeline_schema import Pipeline
 from ....commons.candidate_term_tools import cts_to_concept
 from ....commons.llm_tools import HuggingFaceGenerator, LLMGenerator
 from ....commons.logging_config import logger
-from ....commons.prompts import hf_prompt_concept_extraction
+from ....commons.prompts import hf_prompt_concept_extraction, parse_json_output
 from ....data_container.candidate_term_schema import CandidateTerm
 from ..pipeline_component_schema import PipelineComponent
 
@@ -50,7 +50,9 @@ class LLMBasedConceptExtraction(PipelineComponent):
             else hf_prompt_concept_extraction
         )
         self.llm_generator = (
-            llm_generator if llm_generator is not None else HuggingFaceGenerator()
+            llm_generator
+            if llm_generator is not None
+            else HuggingFaceGenerator()
         )
         self.doc_context_max_len = doc_context_max_len
         self.check_resources()
@@ -148,7 +150,9 @@ class LLMBasedConceptExtraction(PipelineComponent):
         """
         concept_candidates = []
         try:
-            cc_labels = ast.literal_eval(llm_output)
+            cc_labels = parse_json_output(llm_output)
+            if isinstance(cc_labels, dict):
+                cc_labels = cc_labels.get("result", [])
             for cc_group in cc_labels:
                 cc_set = {
                     cterm_index[cc_label]
@@ -177,8 +181,13 @@ class LLMBasedConceptExtraction(PipelineComponent):
         ct_str_list = "\n".join(cterm_index.keys())
         prompt = self.prompt_template(doc_context, ct_str_list)
         llm_output = self.llm_generator.generate_text(prompt)
-        concept_candidates = self._convert_llm_output_to_cc(llm_output, cterm_index)
+        concept_candidates = self._convert_llm_output_to_cc(
+            llm_output, cterm_index
+        )
         for concept_candidate in concept_candidates:
+            # Skip if it is empty
+            if len(concept_candidate) == 0:
+                continue
             new_concept = cts_to_concept(concept_candidate)
             pipeline.kr.concepts.add(new_concept)
 

@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List, Optional, Set
 from ...pipeline_schema import Pipeline
 from ....commons.llm_tools import HuggingFaceGenerator, LLMGenerator
 from ....commons.logging_config import logger
-from ....commons.prompts import hf_prompt_term_enrichment
+from ....commons.prompts import hf_prompt_term_enrichment, parse_json_output
 from ....data_container import CandidateTerm, Enrichment
 from ..pipeline_component_schema import PipelineComponent
 
@@ -44,7 +44,9 @@ class LLMBasedTermEnrichment(PipelineComponent):
             else hf_prompt_term_enrichment
         )
         self.llm_generator = (
-            llm_generator if llm_generator is not None else HuggingFaceGenerator()
+            llm_generator
+            if llm_generator is not None
+            else HuggingFaceGenerator()
         )
         self.check_resources()
 
@@ -87,7 +89,8 @@ class LLMBasedTermEnrichment(PipelineComponent):
         cterm_prompt = self.prompt_template(cterm.label)
         llm_output = self.llm_generator.generate_text(cterm_prompt)
         try:
-            enrichment = ast.literal_eval(llm_output)
+            # A JSON with list values is expected here.
+            enrichment = parse_json_output(llm_output)
             if isinstance(enrichment, Dict):
                 if cterm.enrichment is None:
                     cterm.enrichment = Enrichment()
