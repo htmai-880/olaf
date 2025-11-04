@@ -184,7 +184,7 @@ class LLMBasedHierarchisation(PipelineComponent):
             # Expected: list of list of strings
             list_metarelations = parse_json_output(llm_output)
             if isinstance(list_metarelations, dict):
-                list_metarelations = list_metarelations["result"]
+                list_metarelations = list_metarelations["results"]
             if not (isinstance(list_metarelations, List)):
                 raise ValueError(f"Invalid LLM output format:\n{llm_output}")
             for meta_tuple in list_metarelations:

@@ -153,7 +153,7 @@ class LLMBasedConceptExtraction(PipelineComponent):
             # Expected: list of list of strings
             cc_labels = parse_json_output(llm_output)
             if isinstance(cc_labels, dict):
-                cc_labels = cc_labels["result"]
+                cc_labels = cc_labels["results"]
             assert isinstance(cc_labels, list), "LLM output is not a list."
             for cc_group in cc_labels:
                 cc_set = {

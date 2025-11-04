@@ -5,7 +5,7 @@ import rdflib
 FORMAT_INSTRUCTION_LIST = """Return nothing but a json object containing the list of results, enclosed in triple backtick delimiters, as follows:
 ```json
 {
-    "result": [
+    "results": [
         "list",
         "of",
         "results"
@@ -17,9 +17,9 @@ FORMAT_INSTRUCTION_LIST = """Return nothing but a json object containing the lis
 FORMAT_INSTRUCTION_LIST_LIST = """Return nothing but a json object containing the list of list of results, enclosed in triple backtick delimiters, as follows:
 ```json
 {
-    "result": [
+    "results": [
         ["list", "of", "results"],
-        ["another", "result", "list"]
+        ["another", "results", "list"]
     ]
 }
 ```

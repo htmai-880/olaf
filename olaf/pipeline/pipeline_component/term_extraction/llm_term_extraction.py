@@ -111,7 +111,7 @@ class LLMTermExtraction(TermExtractionPipelineComponent):
             # Expected: list of strings
             ct_labels = parse_json_output(llm_output)
             if isinstance(ct_labels, dict):
-                ct_labels = ct_labels["result"]
+                ct_labels = ct_labels["results"]
             if isinstance(ct_labels, list):
                 ct_labels = set(ct_labels)
             else:
