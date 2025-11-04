@@ -219,6 +219,7 @@ class LLMBasedRelationExtraction(PipelineComponent):
                 The relations can not be extracted."""
             )
             logger.error(str(e))
+            logger.error(f"LLM output was:\n{llm_output}")
         return relation_candidates
 
     def run(self, pipeline: Pipeline) -> None:

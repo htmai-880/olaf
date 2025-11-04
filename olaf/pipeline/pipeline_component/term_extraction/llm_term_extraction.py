@@ -128,6 +128,7 @@ class LLMTermExtraction(TermExtractionPipelineComponent):
                 doc.text[:100],
             )
             logger.error(str(e))
+            logger.error(f"LLM output was:\n{llm_output}")
             ct_labels = set()
         return ct_labels
 

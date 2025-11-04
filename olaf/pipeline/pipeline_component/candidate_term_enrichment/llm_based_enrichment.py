@@ -114,6 +114,7 @@ class LLMBasedTermEnrichment(PipelineComponent):
                 cterm.label,
             )
             logger.error(str(e))
+            logger.error(f"LLM output was:\n{llm_output}")
             enrichment = None
 
     def run(self, pipeline: Pipeline) -> None:

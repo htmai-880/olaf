@@ -168,6 +168,7 @@ class LLMBasedConceptExtraction(PipelineComponent):
                 The concepts can not be extracted."""
             )
             logger.error(str(e))
+            logger.error(f"LLM output was:\n{llm_output}")
         return concept_candidates
 
     def run(self, pipeline: Pipeline) -> None:

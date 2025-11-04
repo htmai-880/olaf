@@ -210,6 +210,7 @@ class LLMBasedHierarchisation(PipelineComponent):
                 The metarelations can not be extracted."""
             )
             logger.error(str(e))
+            logger.error(f"LLM output was:\n{llm_output}")
         return metarelations
 
     def run(self, pipeline: Pipeline) -> None:
