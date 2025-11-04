@@ -350,7 +350,7 @@ def openai_prompt_hierarchisation(
         {
             "role": "user",
             "content": """Based on the context given, define if there is a hierarchy between the listed concepts.
-            The result should be given as a python list of list of string with double quotes.""",
+            The result should be given as a json object, containing a list of list of string with double quotes.""",
         },
         {
             "role": "user",

@@ -186,7 +186,7 @@ class LLMBasedHierarchisation(PipelineComponent):
             if isinstance(list_metarelations, dict):
                 list_metarelations = list_metarelations["results"]
             if not (isinstance(list_metarelations, List)):
-                raise ValueError(f"Invalid LLM output format:\n{llm_output}")
+                raise ValueError(f"Invalid LLM output format")
             for meta_tuple in list_metarelations:
                 if not (isinstance(meta_tuple, List) and len(meta_tuple) == 3):
                     continue
