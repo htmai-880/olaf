@@ -518,5 +518,7 @@ def parse_turtle_output(output: str) -> str:
         g = rdflib.Graph()
         g.parse(data=output, format="turtle")
         return output
-    except (ValueError, rdflib.exceptions.ParserError) as e:
-        raise ValueError("Failed to parse Turtle output.") from e
+    except Exception as e:
+        raise ValueError(
+            f"Failed to parse Turtle output.\nOutput:\n{output}"
+        ) from e

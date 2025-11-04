@@ -6,7 +6,10 @@ from spacy.tokens import Doc
 from ...pipeline_schema import Pipeline
 from ....commons.llm_tools import HuggingFaceGenerator, LLMGenerator
 from ....commons.logging_config import logger
-from ....commons.prompts import hf_prompt_owl_axiom_extraction
+from ....commons.prompts import (
+    hf_prompt_owl_axiom_extraction,
+    parse_turtle_output,
+)
 from ....data_container import Concept, Metarelation, Relation
 from ....data_container.metarelation_schema import METARELATION_RDFS_OWL_MAP
 from ..pipeline_component_schema import PipelineComponent
@@ -50,10 +53,14 @@ class LLMBasedOWLAxiomExtraction(PipelineComponent):
             else hf_prompt_owl_axiom_extraction
         )
         self.llm_generator = (
-            llm_generator if llm_generator is not None else HuggingFaceGenerator()
+            llm_generator
+            if llm_generator is not None
+            else HuggingFaceGenerator()
         )
         self.namespace = (
-            namespace if namespace is not None else "http://www.ms2.org/o/example#"
+            namespace
+            if namespace is not None
+            else "http://www.ms2.org/o/example#"
         )
         self.check_resources()
 
@@ -113,7 +120,9 @@ class LLMBasedOWLAxiomExtraction(PipelineComponent):
 
         return kr_description
 
-    def _relations_to_text(self, owl_graph: Graph, relations: Set[Relation]) -> str:
+    def _relations_to_text(
+        self, owl_graph: Graph, relations: Set[Relation]
+    ) -> str:
         """Create textual description of relations.
 
         Parameters
@@ -130,13 +139,19 @@ class LLMBasedOWLAxiomExtraction(PipelineComponent):
         """
         kr_description = ""
         kr_description += "Classes:\n"
-        q_res = owl_graph.query("SELECT ?class WHERE {?class rdf:type owl:Class .}")
-        kr_description += ", ".join([item.fragment for res in q_res for item in res])
+        q_res = owl_graph.query(
+            "SELECT ?class WHERE {?class rdf:type owl:Class .}"
+        )
+        kr_description += ", ".join(
+            [item.fragment for res in q_res for item in res]
+        )
         kr_description += "Individuals:\n"
         q_res = owl_graph.query(
             "SELECT ?instance WHERE {?instance rdf:type owl:NamedIndividual .}"
         )
-        kr_description += ", ".join([item.fragment for res in q_res for item in res])
+        kr_description += ", ".join(
+            [item.fragment for res in q_res for item in res]
+        )
         kr_description += "\nRelations:\n"
         rel = set()
         for relation in relations:
@@ -173,13 +188,19 @@ class LLMBasedOWLAxiomExtraction(PipelineComponent):
         """
         kr_description = ""
         kr_description += "Classes:\n"
-        q_res = owl_graph.query("SELECT ?class WHERE {?class rdf:type owl:Class .}")
-        kr_description += ", ".join([item.fragment for res in q_res for item in res])
+        q_res = owl_graph.query(
+            "SELECT ?class WHERE {?class rdf:type owl:Class .}"
+        )
+        kr_description += ", ".join(
+            [item.fragment for res in q_res for item in res]
+        )
         kr_description += "Individuals:\n"
         q_res = owl_graph.query(
             "SELECT ?instance WHERE {?instance rdf:type owl:NamedIndividual .}"
         )
-        kr_description += ", ".join([item.fragment for res in q_res for item in res])
+        kr_description += ", ".join(
+            [item.fragment for res in q_res for item in res]
+        )
         kr_description += "\nRelations:\n"
         for meta in metarelations:
             kr_description += f"({meta.source_concept.label}, {METARELATION_RDFS_OWL_MAP[meta.label].replace('http://www.w3.org/2000/01/rdf-schema#','rdfs:')}, {meta.destination_concept.label})\n"
@@ -199,9 +220,10 @@ class LLMBasedOWLAxiomExtraction(PipelineComponent):
         Graph
             The RDF graph created.
         """
-        if not (llm_output[-1] == "."):
-            llm_output = llm_output[: llm_output.rfind(".") + 1]
-        owl_graph = Graph()
+        # if not (llm_output[-1] == "."):
+        #     llm_output = llm_output[: llm_output.rfind(".") + 1]
+        turtle_content = parse_turtle_output(llm_output)
+        owl_graph = Graph(turtle_content)
         try:
             owl_graph.parse(data=llm_output, format="ttl")
         except SyntaxError as e:
