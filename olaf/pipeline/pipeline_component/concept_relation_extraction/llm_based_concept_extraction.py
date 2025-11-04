@@ -160,11 +160,12 @@ class LLMBasedConceptExtraction(PipelineComponent):
                     if cc_label in cterm_index
                 }
                 concept_candidates.append(cc_set)
-        except (SyntaxError, ValueError):
+        except (SyntaxError, ValueError) as e:
             logger.error(
                 """LLM generator output is not in the expected format. 
                 The concepts can not be extracted."""
             )
+            logger.error(str(e))
         return concept_candidates
 
     def run(self, pipeline: Pipeline) -> None:

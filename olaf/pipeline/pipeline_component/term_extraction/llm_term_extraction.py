@@ -119,13 +119,14 @@ class LLMTermExtraction(TermExtractionPipelineComponent):
                     doc.text[:100],
                 )
                 ct_labels = set()
-        except Exception:
+        except Exception as e:
             logger.error(
                 """LLM generator output is not in the expected format.
                 The candidate terms can not be processed.
                 \nDoc concerned : %s...""",
                 doc.text[:100],
             )
+            logger.error(str(e))
             ct_labels = set()
         return ct_labels
 

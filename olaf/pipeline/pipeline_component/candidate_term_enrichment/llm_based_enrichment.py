@@ -108,11 +108,12 @@ class LLMBasedTermEnrichment(PipelineComponent):
                     cterm.label,
                 )
                 enrichment = None
-        except Exception:
+        except Exception as e:
             logger.error(
                 """LLM generator output is not in the expected format. The candidate term %s can not be enriched.""",
                 cterm.label,
             )
+            logger.error(str(e))
             enrichment = None
 
     def run(self, pipeline: Pipeline) -> None:

@@ -203,11 +203,12 @@ class LLMBasedHierarchisation(PipelineComponent):
                         source_concept, destination_concept, "is_generalised_by"
                     )
                     metarelations.add(new_metarelation)
-        except (SyntaxError, ValueError):
+        except (SyntaxError, ValueError) as e:
             logger.error(
                 """LLM generator output is not in the expected format. 
                 The metarelations can not be extracted."""
             )
+            logger.error(str(e))
         return metarelations
 
     def run(self, pipeline: Pipeline) -> None:

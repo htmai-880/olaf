@@ -212,11 +212,12 @@ class LLMBasedRelationExtraction(PipelineComponent):
                     if rc_label in cterm_index.keys():
                         rc_set.add(cterm_index[rc_label])
                 relation_candidates.append(rc_set)
-        except (SyntaxError, ValueError):
+        except (SyntaxError, ValueError) as e:
             logger.error(
                 """LLM generator output is not in the expected format. 
                 The relations can not be extracted."""
             )
+            logger.error(str(e))
         return relation_candidates
 
     def run(self, pipeline: Pipeline) -> None:
