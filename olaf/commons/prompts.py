@@ -488,7 +488,7 @@ def parse_json_output(output: str) -> dict:
         end = output.rindex("}") + 1
         return json.loads(output[start:end])
     except (ValueError, json.JSONDecodeError) as e:
-        raise ValueError("Failed to parse JSON output.") from e
+        raise ValueError(f"Failed to parse JSON output:\n{output}") from e
 
 
 def parse_turtle_output(output: str) -> str:
