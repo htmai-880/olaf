@@ -185,6 +185,7 @@ class LLMBasedConceptExtraction(PipelineComponent):
         ct_str_list = "\n".join(cterm_index.keys())
         prompt = self.prompt_template(doc_context, ct_str_list)
         llm_output = self.llm_generator.generate_text(prompt)
+        print(prompt)
         concept_candidates = self._convert_llm_output_to_cc(
             llm_output, cterm_index
         )
