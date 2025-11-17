@@ -18,9 +18,14 @@ from ..commons.logging_config import logger
 class LLMGenerator(ABC):
     """Text generator based on LLM."""
 
-    def __init__(self, model_name: str = "gpt-3.5-turbo") -> None:
+    def __init__(
+        self,
+        model_name: str = "gpt-3.5-turbo",
+        timeout: int = 300,
+    ) -> None:
         """Initialise LLM generator."""
         self.model_name = model_name
+        self.timeout = timeout
 
     @abstractmethod
     def check_resources(self) -> None:
@@ -85,7 +90,7 @@ class OpenAIGenerator(LLMGenerator):
         """Generate text based on a chat completion prompt for the OpenAI gtp-3.5-turbo model."""
 
         @retry(
-            stop=stop_after_delay(15) | stop_after_attempt(3),
+            stop=stop_after_delay(self.timeout) | stop_after_attempt(3),
             retry=(
                 retry_if_exception_type(
                     openai.APIConnectionError
@@ -149,7 +154,7 @@ class AzureOpenAIGenerator(LLMGenerator):
         """Generate text based on a chat completion prompt for the OpenAI gtp-3.5-turbo model."""
 
         @retry(
-            stop=stop_after_delay(15) | stop_after_attempt(3),
+            stop=stop_after_delay(self.timeout) | stop_after_attempt(3),
             retry=(
                 retry_if_exception_type(
                     openai.APIConnectionError
