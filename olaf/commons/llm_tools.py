@@ -85,9 +85,16 @@ class OpenAIGenerator(LLMGenerator):
         """Check that the resources needed to use the OpenAI Generator are available."""
         if "OPENAI_API_KEY" not in os.environ:
             raise MissingEnvironmentVariable(self.__class__, "OPENAI_API_KEY")
+        print("Base URL:", os.getenv("OPENAI_API_BASE_URL"))
 
     def generate_text(self, prompt: List[Dict[str, str]]) -> str:
         """Generate text based on a chat completion prompt for the OpenAI gtp-3.5-turbo model."""
+
+        llm_output = ""
+        client = openai.OpenAI(
+            base_url=os.getenv("OPENAI_API_BASE_URL") or None,
+            api_key=os.getenv("OPENAI_API_KEY"),
+        )
 
         @retry(
             stop=stop_after_delay(self.timeout) | stop_after_attempt(3),
@@ -109,11 +116,6 @@ class OpenAIGenerator(LLMGenerator):
             )
             return response
 
-        llm_output = ""
-        client = openai.OpenAI(
-            base_url=os.getenv("OPENAI_API_BASE_URL") or None,
-            api_key=os.getenv("OPENAI_API_KEY"),
-        )
         try:
             response = openai_call()
             llm_output = response.choices[0].message.content
@@ -152,6 +154,12 @@ class AzureOpenAIGenerator(LLMGenerator):
 
     def generate_text(self, prompt: List[Dict[str, str]]) -> str:
         """Generate text based on a chat completion prompt for the OpenAI gtp-3.5-turbo model."""
+        llm_output = ""
+        client = openai.AzureOpenAI(
+            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+        )
 
         @retry(
             stop=stop_after_delay(self.timeout) | stop_after_attempt(3),
@@ -173,12 +181,6 @@ class AzureOpenAIGenerator(LLMGenerator):
             )
             return response
 
-        llm_output = ""
-        client = openai.AzureOpenAI(
-            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-        )
         try:
             response = openai_call()
             llm_output = response.choices[0].message.content
