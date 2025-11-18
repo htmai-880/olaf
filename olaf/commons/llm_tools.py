@@ -89,7 +89,7 @@ class OpenAIGenerator(LLMGenerator):
 
     def generate_text(self, prompt: List[Dict[str, str]]) -> str:
         """Generate text based on a chat completion prompt for the OpenAI gtp-3.5-turbo model."""
-
+        print("Prompt: ", prompt)
         llm_output = ""
         client = openai.OpenAI(
             base_url=os.getenv("OPENAI_API_BASE_URL") or None,
@@ -114,6 +114,7 @@ class OpenAIGenerator(LLMGenerator):
                 temperature=0,
                 messages=prompt,
             )
+            print("Response: ", response)
             return response
 
         try:
